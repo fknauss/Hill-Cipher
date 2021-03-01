@@ -29,62 +29,67 @@ ALPHSIZE = 29
 
 ALPH = list(map(ord," .,")) + list(range(ord('A'),ord('Z')+1))
 assert len(ALPH) == ALPHSIZE, "Alphabet wrong size"
- 
-def toI(s):
-    # convert all ws to spaces
-    s1 = re.sub("\s+"," ",s.upper())
-    return [ALPH.index(ord(x)) for x in s1 if ord(x) in ALPH]
 
-def toS(i):
-    s = [chr(ALPH[x])for x in i]
-    return "".join(s)
-
-# key string, matrix size
-def toA(k,n):
-    # needed length
-    n2=n*n
-    #shorten if too long
-    buf = (list(k))[:n2]
-    #lengthen if too short. fill with sequence, not zeros.
-    #not great, but it's deterministic
-    ary = buf+list(range(n2-len(buf)))
-    # make sure it's invertible,
-    # add the identity matrix until it is.
-    m = Matrix(n,n,ary)
-    while True:
-        try:
-            m.inv_mod(ALPHSIZE)
-        except ValueError:
-            m=(m+Matrix.eye(n))%ALPHSIZE
-        else:
-            return m
-
+# convert string to array of filtered #s
+def proc_alph(inp):
+    s = re.sub("\s+"," ",inp)
+    return  [ALPH.index(ord(x)) for x in s if ord(x) in ALPH]
 
 class Hill:
-    #create encoding and decoding matrices
+    # save key and size
     def __init__(self,size, keystring):
         self.size = int(size)
-        self.a_encode = toA(toI(keystring),size)
-        self.a_decode = self.a_encode.inv_mod(ALPHSIZE)
+        self.key = proc_alph(keystring)
+        
+    #create invertible matrix of saved size from key
+    def encode_matrix(self):
+        n = self.size
+        # needed length
+        n2=n*n
+        
+        #shorten if too long
+        buf = (list(self.key))[:n2]
+        
+        #lengthen if too short. fill with sequence, not zeros.
+        #not great, but it's deterministic
+        ary = buf+list(range(n2-len(buf)))
+        
+        # make sure it's invertible,
+        # add the identity matrix until it is.
+        m = Matrix(n,n,ary)
+        while True:
+            try:
+                m.inv_mod(ALPHSIZE)
+            except ValueError:
+                m=(m+Matrix.eye(n))%ALPHSIZE
+            else:
+                return m
+                
+    # inverted matrix
+    def decode_matrix(self):
+        return self.encode_matrix().inv_mod(ALPHSIZE)
 
     # pull the string from the input,
     # convert to a matrix of appropriate length
     # multiply with modulus
     # flatten back out and convert to string
     def process(self,input,m):
-        buf = list(toI(input.read()))
+        # convert all ws to spaces
+        buf = proc_alph(input.read().upper())
+        
         # pad with spaces to make divisible by size.
-        buf = buf + toI(" ") * ((self.size-len(buf))%self.size)
-        d = Matrix(self.size,int(len(buf)/self.size),buf)
-        e = ((m*d)%ALPHSIZE).tolist()
-        return (toS(chain.from_iterable(e)))
+        buf = buf + proc_alph(' ') * ((self.size-len(buf))%self.size)
+        inm = Matrix(self.size,int(len(buf)/self.size),buf)
+        outm = ((m*inm)%ALPHSIZE).tolist()
+        s = [chr(ALPH[x])for x in chain.from_iterable(outm)]
+        return "".join(s)
 
     # process using appropriate matrix
     def encode(self, input):
-        return self.process(input,self.a_encode)
+        return self.process(input,self.encode_matrix())
 
     def decode(self, input):
-        return self.process(input,self.a_decode)
+        return self.process(input,self.decode_matrix())
 
 
 #######################################################
