@@ -1,5 +1,20 @@
 #!/usr/bin/env python3
 
+# script to encode and decode strings using the Hill cypher.
+# It uses a reduced alphabet, but filters plantext to match that.
+#
+# usage: hill.py [-h] [-decode] [-size [SIZE]] key [input_file] [output_file
+# positional arguments:
+#   key           key used to generate the encryption array.
+#   input_file    Default: stdin
+#   output_file   Default: stdout
+#
+# optional arguments:
+#   -h, --help    show this help message and exit
+#   -decode       Decode instead of encode using the given key.
+#   -size [SIZE]  Size of the encryption array. Default: 3
+#
+
 import io
 import re
 import sys
@@ -11,20 +26,18 @@ from itertools import chain
 # and includes spaces(any whitespace), periods and
 # question marks to get to 29 chars (which is prime)
 ALPHSIZE = 29
+
+alph = list(map(ord," .,")) + list(range(ord('A'),ord('Z')+1))
+assert len(alph) == ALPHSIZE, "Alphabet wrong size"
+ 
 def toI(s):
-    filt_s = re.sub("[^A-Z\s?.]","",s.upper())
-    filt_s = re.sub("\.",chr(ord("A")-1),filt_s)
-    #sheer luck that ? maps to ?
-    #filt_s = re.sub("\?",chr(ord("A")-2),filt_s)
-    filt_s = re.sub("\s+",chr(ord("A")-3),filt_s)
-    return (map(lambda x:ord(x)-ord("A")+3,filt_s))
+    # convert all ws to spaces
+    s1 = re.sub("\s+"," ",s.upper())
+    return [alph.index(ord(x)) for x in s1 if ord(x) in alph]
 
 def toS(i):
-    filt_s = "".join(list(map(lambda x:chr(x+ord("A")-3),i)))
-    filt_s = re.sub(chr(ord("A")-1),".",filt_s)
-    #filt_s = re.sub(chr(ord("A")-2),"?",filt_s)
-    filt_s = re.sub(chr(ord("A")-3)," ",filt_s)
-    return filt_s
+    s = [chr(alph[x])for x in i]
+    return "".join(s)
 
 # key string, matrix size
 def toA(k,n):
@@ -59,8 +72,7 @@ class Hill:
     # multiply with modulus
     # flatten back out and convert to string
     def process(self,input,m):
-        buf = input.read()
-        buf=list(toI(buf))
+        buf = list(toI(input.read()))
         # pad with spaces to make divisible by size.
         buf = buf + [0] * ((self.size-len(buf))%self.size)
         d = Matrix(self.size,int(len(buf)/self.size),buf)
