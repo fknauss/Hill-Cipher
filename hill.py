@@ -27,16 +27,16 @@ from itertools import chain
 # question marks to get to 29 chars (which is prime)
 ALPHSIZE = 29
 
-alph = list(map(ord," .,")) + list(range(ord('A'),ord('Z')+1))
-assert len(alph) == ALPHSIZE, "Alphabet wrong size"
+ALPH = list(map(ord," .,")) + list(range(ord('A'),ord('Z')+1))
+assert len(ALPH) == ALPHSIZE, "Alphabet wrong size"
  
 def toI(s):
     # convert all ws to spaces
     s1 = re.sub("\s+"," ",s.upper())
-    return [alph.index(ord(x)) for x in s1 if ord(x) in alph]
+    return [ALPH.index(ord(x)) for x in s1 if ord(x) in ALPH]
 
 def toS(i):
-    s = [chr(alph[x])for x in i]
+    s = [chr(ALPH[x])for x in i]
     return "".join(s)
 
 # key string, matrix size
@@ -74,7 +74,7 @@ class Hill:
     def process(self,input,m):
         buf = list(toI(input.read()))
         # pad with spaces to make divisible by size.
-        buf = buf + [0] * ((self.size-len(buf))%self.size)
+        buf = buf + toI(" ") * ((self.size-len(buf))%self.size)
         d = Matrix(self.size,int(len(buf)/self.size),buf)
         e = ((m*d)%ALPHSIZE).tolist()
         return (toS(chain.from_iterable(e)))
